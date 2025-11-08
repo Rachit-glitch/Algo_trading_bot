@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-# backtest_ibkr_stop.py
-# Strategy:
+
 #   • Look at first 15m bar (09:30). If green -> LONG; if red -> SHORT; if equal -> SKIP
 #   • Enter at 09:45 close.
 #   • Exit early at STOP if hit; otherwise exit at 11:30 close.
@@ -10,7 +8,7 @@
 #   • IBKR commissions (Pro Fixed / Pro Tiered / Lite), per-side min & 1% cap (if applicable).
 #   • Per-share slippage (per side).
 #   • $100 starting equity, fractional shares, compounding.
-#
+
 # Output:
 #   • results_ibkr_stop.xlsx with detailed trades (costs + stop info) and summary.
 
@@ -20,8 +18,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-# -------------------- DEFAULTS (edit if you like) --------------------
-CSV_PATH_DEFAULT       = "DIA_15m_6M.csv"      # CSV sits next to this script
+
+CSV_PATH_DEFAULT       = "DIA_15m_6M.csv"     
 OUT_XLS_DEFAULT        = "results_ibkr_stop.xlsx"
 
 FIRST_BAR_TIME         = "09:30"
@@ -32,20 +30,19 @@ TZ_LOCAL               = "America/New_York"
 # Stop-loss (percentage). Example: 0.005 = 0.5%
 STOP_PCT_DEFAULT       = 0.005
 
-# Starting equity & sizing
+
 START_EQUITY           = 100.00     # start with $100
 ALLOC_PCT              = 1.00       # allocate 100% of equity per trade
 FRACTIONAL_SHARES      = True       # allow fractional shares
 MIN_FRACTIONAL_SHARES  = 0.0001
 
-# Slippage (per share per side)
+
 SLIPPAGE_PER_SHARE     = 0.00
 
-# Optional pass-through (reg/exchange/clearing) fees per share per side (for Tiered)
+
 EXTRA_FEES_PER_SHARE   = 0.00
 
-# -------- IBKR Pricing Plan --------
-# Choose one: "pro_fixed", "pro_tiered", "lite"
+
 PRICING_PLAN           = "pro_fixed"
 
 # Pro Fixed constants
@@ -67,7 +64,7 @@ PT_TIERS = [
 # Lite constants
 LITE_RATE_PER_SHARE    = 0.002
 LITE_MIN_PER_ORDER     = 0.003
-# --------------------------------------------------------------------
+
 
 def parse_args():
     ap = argparse.ArgumentParser(description="DIA 15m rule backtest with IBKR pricing and % stop-loss.")
@@ -157,7 +154,7 @@ def run(csv_path: Path, out_xls: Path, stop_pct: float):
     df = load_data(csv_path)
 
     equity = START_EQUITY
-    monthly_vol = {}  # "YYYY-MM" -> cumulative shares this month (for tiered)
+    monthly_vol = {} 
     rows = []
 
     # Precompute day index positions to scan bars between 09:45 and 11:30
@@ -235,7 +232,7 @@ def run(csv_path: Path, out_xls: Path, stop_pct: float):
             stop_level = entry * (1 + stop_pct)
 
         # Scan bars AFTER 09:45 until 11:30 for stop hit
-        # Eligible bars: those with times strictly after ENTRY_TIME and up to and including EXIT_TIME
+
         subsequent = g[(g["date_local"] > g[g["t"] == ENTRY_TIME]["date_local"].iloc[0]) &
                        (g["date_local"] <= g[g["t"] == EXIT_TIME]["date_local"].iloc[0])]
         exit_price = exit_1130
@@ -245,7 +242,7 @@ def run(csv_path: Path, out_xls: Path, stop_pct: float):
             high, low, close = float(bar["high"]), float(bar["low"]), float(bar["close"])
             if signal == "long":
                 if low <= stop_level:
-                    exit_price = stop_level  # assume stop market fill at level
+                    exit_price = stop_level
                     exit_reason = "stop_hit"
                     break
             else:  # short
@@ -254,12 +251,12 @@ def run(csv_path: Path, out_xls: Path, stop_pct: float):
                     exit_reason = "stop_hit"
                     break
 
-        # Gross PnL before exit costs
+
         gross_points = dir_ * (exit_price - entry)
         gross_ret_pct = dir_ * (exit_price / entry - 1.0)
         gross_pnl_dol = sh * gross_points
 
-        # Exit costs (use exit price actually used)
+
         exit_cost_before = monthly_vol[month_key]
         exit_cost = full_side_cost(sh, exit_price, PRICING_PLAN, exit_cost_before)
         monthly_vol[month_key] += sh  # add exit side shares
