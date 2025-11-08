@@ -1,0 +1,1 @@
+This project presents the results of my intraday trading strategy developed and tested on the DIA ETF (SPDR Dow Jones Industrial Average). The strategy was backtested using minute-level data obtained from Interactive Brokers (IBKR). Its main goal is to capture early morning momentum in the Dow Jones Industrial Average through a simple, rule-based trading approach.
